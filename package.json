@@ -1,0 +1,28 @@
+{
+  "name": "multi-player-game",
+  "version": "1.0.0",
+  "description": "A simple multi-player game.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silentx09/multi-player-game.git"
+  },
+  "keywords": [
+    "socket.io",
+    "node.js",
+    "game"
+  ],
+  "author": "Piyush Santwani",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/silentx09/multi-player-game/issues"
+  },
+  "homepage": "https://github.com/silentx09/multi-player-game#readme",
+  "dependencies": {
+    "express": "^4.13.4",
+    "socket.io": "^1.4.6"
+  }
+}
