@@ -64,11 +64,16 @@
         <script>
         var user_id; 
         var socket = io();
+
         $( document ).ready(function() {
             user_id = '<%= user._id %>';        
             socket.emit("loggedIn", user_id)
             getFeed();        
         });  
+
+        $("#newGame").on("click", function(){        
+            window.location.assign("/game?game="+user_id+"_"+Date.now().toString()+"&player="+user_id);        
+        });
 
         socket.on("updateFeed", function(data){
             data = JSON.parse(data);
@@ -82,10 +87,7 @@
             removeFromFeed(data);
         });
 
-        $("#newGame").on("click", function(){        
-            window.location.assign("/game?game="+user_id+"_"+Date.now().toString()+"&player="+user_id);        
-        });
-
+        
         function removeFromFeed(gameId){
             $("#"+gameId).parent().remove();
         }

@@ -8,7 +8,7 @@ exports.saveError = function(err){
     createdAt: Date.now()
   };
 
-  var errorRecord = new feedSchema(feedData);
+  var errorRecord = new errorSchema(errorData);
   errorRecord.save(function(err){
     if(err){
       console.log("Error occured in logging error to DB.");

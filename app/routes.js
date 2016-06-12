@@ -1,31 +1,8 @@
+/** APIs **/
 module.exports = function(app, passport) {
 
     app.get('/', function(req, res) {
         res.render('index.ejs');
-    });
-
-    app.get('/profile', isLoggedIn, function(req, res) {
-        res.render('profile.ejs', {
-            user : req.user
-        });
-    });
-
-    app.get('/feed', isLoggedIn, function(req, res){
-        res.render('feed.ejs', {
-            user : req.user
-        });
-    });
-
-    app.get('/game', isLoggedIn, function(req, res){
-        res.render('game.ejs',{
-            gameId : req.query['game'],
-            playerId : req.query['player']
-        });
-    });
-
-    app.get('/logout', function(req, res) {
-        req.logout();
-        res.redirect('/');
     });
 
     app.get('/login', function(req, res) {
@@ -48,6 +25,29 @@ module.exports = function(app, passport) {
         failureFlash : true
     }));
     
+    app.get('/feed', isLoggedIn, function(req, res){
+        res.render('feed.ejs', {
+            user : req.user
+        });
+    });
+
+    app.get('/getFeed', function(req, res){
+        gameSocket.getFeed(function(data){
+            res.send(data);
+        });
+    });
+
+    app.get('/game', isLoggedIn, function(req, res){
+        res.render('game.ejs',{
+            gameId : req.query['game'],
+            playerId : req.query['player']
+        });
+    });
+
+    app.get('/logout', function(req, res) {
+        req.logout();
+        res.redirect('/');
+    });
 
     app.get('/connect/local', function(req, res) {
         res.render('connect-local.ejs', { message: req.flash('loginMessage') });
@@ -58,14 +58,10 @@ module.exports = function(app, passport) {
         failureFlash : true
     }));
 
-    app.get('/getFeed', function(req, res){
-        gameSocket.getFeed(function(data){
-            res.send(data);
-        });
-    });
-
 };
 
+
+/**Middleware**/
 function isLoggedIn(req, res, next) {
     if (req.isAuthenticated())
         return next();

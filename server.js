@@ -49,23 +49,23 @@ io.on('connection', function(user){
 	user.on('game', function(data){
 		gameSocket.game(user, data);
 	});
-	user.on('disconnect', function(){
-		gameSocket.onDisconnect(user);
-	});
 	user.on('startGame', function(data){
 		gameSocket.startGame(user, data);
 	});
 	user.on('iPlayed', function(data){
 		gameSocket.userPlayed(user, data);
 	});
-	user.on('destroyGame', function(data){
-		gameSocket.destroyGame(user, data);
+	user.on('gameStop', function(data){
+		gameSocket.gameStopped(user, data);
 	});
 	user.on('quitGame', function(data){
 		gameSocket.quitGame(user, data);
 	});
-	user.on('gameStop', function(data){
-		gameSocket.gameStopped(user, data);
+	user.on('destroyGame', function(data){
+		gameSocket.destroyGame(user, data);
+	});
+	user.on('disconnect', function(){
+		gameSocket.onDisconnect(user);
 	});
 });
 

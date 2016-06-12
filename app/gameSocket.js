@@ -1,3 +1,4 @@
+/**Variables**/
 var usersInAGame = {};
 var socketId_game_pair = {};
 var currentStateOfGame = {};
@@ -7,6 +8,78 @@ var Feed = mongoose.model('Feed', feedSchema, "feeds");
 exports.onConnect = function(socket, data){
 	var userId = data;
 	console.log("User " + userId + " has logged in.");
+};
+
+exports.getFeed = function(callback){
+	Feed.find({'available' : true}).lean().exec(function (err, items) {
+		return callback(JSON.stringify(items));
+	});
+};
+
+exports.game = function(socket,data){
+	data = JSON.parse(data);
+	var playerId = data.playerId;
+	var createdBy = data.createdBy;
+	if(playerId == createdBy){
+		newGame(socket,data);
+	}
+	else if(playerId != createdBy){
+		addPlayerToGame(socket, data);
+	}
+};
+
+exports.startGame = function(socket, gameId){
+	Feed.update({gameId : {$eq: gameId}}, {$set: {available : false, updatedAt : Date.now()}}, function(err, result){
+		console.log("Updated successfully");
+		console.log(result);
+	});
+	currentStateOfGame[gameId] = [];
+	socket.to(gameId).emit("gameStarted", 0);
+	socket.emit('firstTurn', 0);
+};
+
+exports.userPlayed = function(socket, data){
+	var localdata = JSON.parse(data);
+	var gameId = localdata.gameId;
+	var cardValue = localdata.card;
+	var numberOfPlayers = localdata.playerCount;
+	var existingState = currentStateOfGame[gameId];
+	existingState.push(cardValue);
+	var playerTurn;
+	if(existingState.length < numberOfPlayers){
+		playerTurn = existingState.length;
+	}
+	else{
+		playerTurn = 0;
+	}
+
+	var lastPlaydata = {
+		playerTurn : playerTurn,
+		playerId : localdata.playerId,
+		card : cardValue
+	};
+	
+	socket.to(gameId).emit('otherUserPlayed', JSON.stringify(lastPlaydata));
+	if(existingState.length == numberOfPlayers){
+		var maxScore = Math.max.apply(null,existingState);
+		var index = existingState.indexOf(maxScore);
+		socket.to(gameId).emit('gameResult',index);
+		socket.emit('gameResult', index);
+		currentStateOfGame[gameId] = [];
+	}
+	else{
+		currentStateOfGame[gameId] = existingState;
+	}
+};
+
+exports.gameStopped = function(socket, gameId){
+	socket.to(gameId).emit("gameStopped", "");
+};
+
+
+exports.quitGame = function(socket, data){
+	data = JSON.parse(data);
+	removeUsersFromGame(socket, data);
 };
 
 exports.destroyGame = function(socket, gameId){
@@ -35,17 +108,6 @@ exports.onDisconnect = function(socket){
 	console.log("A user has logged out.");
 };
 
-exports.game = function(socket,data){
-	data = JSON.parse(data);
-	var playerId = data.playerId;
-	var createdBy = data.createdBy;
-	if(playerId == createdBy){
-		newGame(socket,data);
-	}
-	else if(playerId != createdBy){
-		addPlayerToGame(socket, data);
-	}
-};
 
 function newGame(socket, data){
 	var socketId = socket.id;
@@ -116,64 +178,6 @@ function updateFeedRecord(gameId, playerCount, available){
 	});
 }
 
-exports.getFeed = function(callback){
-	Feed.find({'available' : true}).lean().exec(function (err, items) {
-		return callback(JSON.stringify(items));
-	});
-};
-
-exports.startGame = function(socket, gameId){
-	Feed.update({gameId : {$eq: gameId}}, {$set: {available : false, updatedAt : Date.now()}}, function(err, result){
-		console.log("Updated successfully");
-		console.log(result);
-	});
-	currentStateOfGame[gameId] = [];
-	socket.to(gameId).emit("gameStarted", 0);
-	socket.emit('firstTurn', 0);
-};
-
-exports.quitGame = function(socket, data){
-	data = JSON.parse(data);
-	removeUsersFromGame(socket, data);
-};
-
-exports.userPlayed = function(socket, data){
-	var localdata = JSON.parse(data);
-	var gameId = localdata.gameId;
-	var cardValue = localdata.card;
-	var numberOfPlayers = localdata.playerCount;
-	var existingState = currentStateOfGame[gameId];
-	existingState.push(cardValue);
-	var playerTurn;
-	if(existingState.length < numberOfPlayers){
-		playerTurn = existingState.length;
-	}
-	else{
-		playerTurn = 0;
-	}
-
-	var lastPlaydata = {
-		playerTurn : playerTurn,
-		playerId : localdata.playerId,
-		card : cardValue
-	};
-	
-	socket.to(gameId).emit('otherUserPlayed', JSON.stringify(lastPlaydata));
-	if(existingState.length == numberOfPlayers){
-		var maxScore = Math.max.apply(null,existingState);
-		var index = existingState.indexOf(maxScore);
-		socket.to(gameId).emit('gameResult',index);
-		socket.emit('gameResult', index);
-		currentStateOfGame[gameId] = [];
-	}
-	else{
-		currentStateOfGame[gameId] = existingState;
-	}
-};
-
-exports.gameStopped = function(socket, gameId){
-	socket.to(gameId).emit("gameStopped", "");
-};
 
 function removeUsersFromGame(socket, data){
 	var playerId = data.playerId;

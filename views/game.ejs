@@ -64,7 +64,7 @@
 
             
             <div id = "gameCards">
-                
+
             </div>
 
             <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.6/socket.io.js"></script>
@@ -73,12 +73,14 @@
             <script type="text/javascript" src="/js/swing.js"></script>
             
             <script>
+
             var socket = io();
             var gameId;
             var playerId;
             var createdBy;
             var existingPlayers = [];
             var playerTurn;
+
             $( document ).ready(function() {        
                 gameId = '<%= gameId %>';
                 var gameCreateDetails = gameId.split("_");        
@@ -102,6 +104,19 @@
                 socket.emit('game', JSON.stringify(gameData));                 
             });
 
+            $("#stop").on("click", function(){
+                clearCards();
+            });
+
+            $("#quit").on("click", function(){        
+                quitGame();
+            });
+
+            $("#start").on("click", function(){
+                loadCards();
+                socket.emit("startGame", gameId);
+            });   
+
             socket.on('newPlayerJoined', function(data){
                 data = JSON.parse(data);
                 existingPlayers = data.players;        
@@ -110,73 +125,17 @@
                 $("#playersInGame").html(players);
                 $("#feedList").append($('<li>').text("User " + data.newJoinee + " has joined the game")); 
             }); 
+
             socket.on("gamePlayerCount", function(data){
                 console.log(data);
                 existingPlayers = data;                
                 $("#playersInGame").html(data.join(","));
             });
+
             socket.on("gameDestroyed", function(data){
                 alert("The game has been destroyed by the creator. Go to the feed to create a new game or join an existing game.");
                 window.location = '/feed';
             });
-
-            function startStopBtnState(){
-                if(existingPlayers.length > 1){
-                    $("#start").prop("disabled", false);
-                    $("#stop").prop("disabled", false);
-                }
-                else{
-                    $("#start").prop("disabled", true);
-                    $("#stop").prop("disabled", true);
-                    $("#stop").click();
-                }
-            }
-
-            $("#stop").on("click", function(){
-                clearCards();
-            });
-
-            function playerTurnFunc(index){
-                playerTurn = existingPlayers[index];
-                $("#playerTurn").html(existingPlayers[index]);
-            }    
-
-            $("#quit").on("click", function(){        
-                quitGame();
-            });
-
-            function quitGame(){
-                var destroyGame = false;
-                var confirmMsg = "";
-                
-                if(createdBy == playerId){
-                    confirmMsg = "The game will be destroyed if you quit. Proceed ?"
-                    destroyGame = true;
-                }
-                else{
-                    confirmMsg = "Are you sure you want to quit?"   
-                }
-                var r = confirm(confirmMsg);            
-                if(r == true){
-
-                    var quitGameDate = {
-                        playerId : playerId,
-                        gameId : gameId
-                    }
-                    
-                    if(destroyGame){
-                        socket.emit("destroyGame", gameId);
-                    }else{
-                        socket.emit("quitGame", JSON.stringify(quitGameDate));
-                    }                       
-                    window.location = '/feed';                                
-                }     
-            }
-
-            $("#start").on("click", function(){
-                loadCards();
-                socket.emit("startGame", gameId);
-            });        
 
             socket.on("playerLeft", function(data){
                 data = JSON.parse(data);
@@ -220,6 +179,53 @@
                 alert(existingPlayers[data] + " won.");        
                 loadCards();
             });
+
+            function startStopBtnState(){
+                if(existingPlayers.length > 1){
+                    $("#start").prop("disabled", false);
+                    $("#stop").prop("disabled", false);
+                }
+                else{
+                    $("#start").prop("disabled", true);
+                    $("#stop").prop("disabled", true);
+                    $("#stop").click();
+                }
+            }            
+
+            function playerTurnFunc(index){
+                playerTurn = existingPlayers[index];
+                $("#playerTurn").html(existingPlayers[index]);
+            }    
+
+            
+
+            function quitGame(){
+                var destroyGame = false;
+                var confirmMsg = "";
+                
+                if(createdBy == playerId){
+                    confirmMsg = "The game will be destroyed if you quit. Proceed ?"
+                    destroyGame = true;
+                }
+                else{
+                    confirmMsg = "Are you sure you want to quit?"   
+                }
+                var r = confirm(confirmMsg);            
+                if(r == true){
+
+                    var quitGameDate = {
+                        playerId : playerId,
+                        gameId : gameId
+                    }
+                    
+                    if(destroyGame){
+                        socket.emit("destroyGame", gameId);
+                    }else{
+                        socket.emit("quitGame", JSON.stringify(quitGameDate));
+                    }                       
+                    window.location = '/feed';                                
+                }     
+            }                         
 
             function loadCards(){
                 var cards = "";
@@ -277,11 +283,6 @@
             function removeCard(playerId){                
                 $("#"+playerId+"_cardDiv").remove();
             }
-
-
-
-
-
 
             </script>
 
