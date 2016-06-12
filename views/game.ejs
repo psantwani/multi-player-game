@@ -1,0 +1,290 @@
+<!doctype html>
+<html>
+<head>
+    <title>POSTMAN</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+    <link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/css/card-stack.css">
+    <style>
+    body{ 
+        word-wrap:break-word; }
+        #start{
+            display: none;
+        }
+        #stop{
+            display: none;
+        }
+        .viewport{
+            float:left;
+        }
+        .openCard{
+            font-size: 15px;
+        }
+        .stack li span{
+            display: table-cell;
+            vertical-align: middle;
+            height: 250px;
+            padding-left: 60px;
+        }
+        .playerItem{
+            display: inline-block;
+        }
+        #whoseTurn{
+            float: right;
+        }
+        #gameButtons{
+            margin-left: 250px;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+
+            <div id = "playerControls" class = "page-header">
+                <div id = "myId" class="playerItem">
+                    <p><b>MYID</b> : <%= playerId %></p>
+                </div>
+                <div class="text-center playerItem" id = "gameButtons">
+                    <button class="btn btn-primary btn-sm" id="start" disabled>Start</button>
+                    <button class="btn btn-danger btn-sm" id="quit">Quit</button>
+                    <button class="btn btn-warning btn-sm" id="stop" disabled>Stop</button>
+                </div>    
+                <div id = "whoseTurn" class="playerItem">
+                    <p><b>Currently playing : </b> <span id="playerTurn">Game not started.</span></p>
+                </div>
+            </div>        
+            
+            <div>
+                <ul class="list-group" id="feedList">  
+                    <li><b>Game created by -</b> <span id = "userId"></span> on <span id="createTime"></span></li>
+                    <li><b>Players in the game -</b> <span id = "playersInGame"></span></li>
+                </ul>        
+            </div>
+
+            
+            <div id = "gameCards">
+                
+            </div>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.6/socket.io.js"></script>
+            <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+            <script type="text/javascript" src="/js/card-stack.js"></script>
+            <script type="text/javascript" src="/js/swing.js"></script>
+            
+            <script>
+            var socket = io();
+            var gameId;
+            var playerId;
+            var createdBy;
+            var existingPlayers = [];
+            var playerTurn;
+            $( document ).ready(function() {        
+                gameId = '<%= gameId %>';
+                var gameCreateDetails = gameId.split("_");        
+                createdBy = gameCreateDetails[0];
+                var createdAt = gameCreateDetails[1];
+                playerId = '<%= playerId %>';
+
+                if(createdBy == playerId){
+                    $("#start").css("display", "inline-block");
+                    $("#stop").css("display", "inline-block");
+                }
+                $("#userId").html(createdBy);
+                $("#createTime").html(new Date(parseInt(createdAt)));
+                var gameData = {
+                    gameId : gameId,
+                    createdBy : createdBy,
+                    createdAt : createdAt,
+                    playerId : playerId
+                };
+                socket.emit("loggedIn", createdBy)
+                socket.emit('game', JSON.stringify(gameData));                 
+            });
+
+            socket.on('newPlayerJoined', function(data){
+                data = JSON.parse(data);
+                existingPlayers = data.players;        
+                startStopBtnState();
+                var players = data.players.join(",");
+                $("#playersInGame").html(players);
+                $("#feedList").append($('<li>').text("User " + data.newJoinee + " has joined the game")); 
+            }); 
+            socket.on("gamePlayerCount", function(data){
+                console.log(data);
+                existingPlayers = data;                
+                $("#playersInGame").html(data.join(","));
+            });
+            socket.on("gameDestroyed", function(data){
+                alert("The game has been destroyed by the creator. Go to the feed to create a new game or join an existing game.");
+                window.location = '/feed';
+            });
+
+            function startStopBtnState(){
+                if(existingPlayers.length > 1){
+                    $("#start").prop("disabled", false);
+                    $("#stop").prop("disabled", false);
+                }
+                else{
+                    $("#start").prop("disabled", true);
+                    $("#stop").prop("disabled", true);
+                    $("#stop").click();
+                }
+            }
+
+            $("#stop").on("click", function(){
+                clearCards();
+            });
+
+            function playerTurnFunc(index){
+                playerTurn = existingPlayers[index];
+                $("#playerTurn").html(existingPlayers[index]);
+            }    
+
+            $("#quit").on("click", function(){        
+                quitGame();
+            });
+
+            function quitGame(){
+                var destroyGame = false;
+                var confirmMsg = "";
+                
+                if(createdBy == playerId){
+                    confirmMsg = "The game will be destroyed if you quit. Proceed ?"
+                    destroyGame = true;
+                }
+                else{
+                    confirmMsg = "Are you sure you want to quit?"   
+                }
+                var r = confirm(confirmMsg);            
+                if(r == true){
+
+                    var quitGameDate = {
+                        playerId : playerId,
+                        gameId : gameId
+                    }
+                    
+                    if(destroyGame){
+                        socket.emit("destroyGame", gameId);
+                    }else{
+                        socket.emit("quitGame", JSON.stringify(quitGameDate));
+                    }                       
+                    window.location = '/feed';                                
+                }     
+            }
+
+            $("#start").on("click", function(){
+                loadCards();
+                socket.emit("startGame", gameId);
+            });        
+
+            socket.on("playerLeft", function(data){
+                data = JSON.parse(data);
+                existingPlayers = data.playersLeft;
+                startStopBtnState();
+                console.log(data);
+                $("#playersInGame").html(data.playersLeft.join(","));
+                $("#feedList").append($('<li>').text("User " + data.playerId + " has left the game")); 
+                if(data.playerId == playerTurn){
+                    alert(playerTurn + " left in the middle of a game. Starting new game.");
+                    loadCards();
+                }
+                removeCard(data.playerId);
+            });
+
+            socket.on('firstTurn', function(data){
+                playerTurnFunc(data);
+            });
+
+            socket.on("gameStarted", function(data){
+                playerTurnFunc(data);
+                loadCards();
+            });
+
+            socket.on("otherUserPlayed", function(data){    
+                console.log(data);    
+                data = JSON.parse(data);        
+                var cardValue = "<span class='randomNumber'>" + data.card + "</span>";        
+                $("#"+data.playerId+"_a").parent().html(cardValue);
+                if(data.card > 9){
+                    $('.randomNumber').css('padding-left','40px');
+                }
+                else{
+                    $('.randomNumber').css('padding-left','60px');   
+                }
+                console.log(data);
+                playerTurnFunc(data.playerTurn);
+            });
+
+            socket.on('gameResult', function(data){
+                alert(existingPlayers[data] + " won.");        
+                loadCards();
+            });
+
+            function loadCards(){
+                var cards = "";
+                for(var i = 0 ; i < existingPlayers.length; i++){            
+                    cards = cards + "<div class = 'viewport' id='" + existingPlayers[i] + "_cardDiv'><ul class='stack'><li><a class = 'openCard' id = '"+existingPlayers[i]+"_a' onclick='openCard(this)'>Click Here</a></li></ul><p>" + existingPlayers[i] + "</p></div>";    
+                }               
+                $("#gameCards").html(cards);
+            }
+
+            function clearCards(){
+                $("#gameCards").html("");
+                socket.emit("gameStop",gameId);
+            }
+
+            socket.on("gameStopped", function(data){
+                $("#gameCards").html("");
+            });
+
+
+            function openCard(ele){
+                var id = ele.id.slice(0,-2);
+                if(playerTurn != playerId){
+                    alert("Wait for your turn. " + playerTurn + " is playing.");
+                }        
+                else if(id == playerId){            
+                    var randomNumber = Math.floor((Math.random() * 10) + 1);            
+                    var cardValue = "<span class='randomNumber'>" + randomNumber + "</span>";
+                    $(ele).parent().html(cardValue);
+                    if(randomNumber > 9){
+                        $('.randomNumber').css('padding-left','40px');
+                    }
+                    else{
+                        $('.randomNumber').css('padding-left','60px');   
+                    }
+                    var showCard = {
+                        gameId : gameId,
+                        playerId : playerId,
+                        card : randomNumber,
+                        playerCount : existingPlayers.length
+                    }
+                    var myIndexInGame = existingPlayers.indexOf(playerId);
+                    if(myIndexInGame == existingPlayers.length - 1){
+                        playerTurnFunc(0);
+                    }else{
+                        playerTurnFunc(myIndexInGame + 1);                
+                    }
+                    
+                    socket.emit("iPlayed", JSON.stringify(showCard));            
+                }        
+                else{
+                    alert("No cheating");            
+                }
+            }
+
+            function removeCard(playerId){                
+                $("#"+playerId+"_cardDiv").remove();
+            }
+
+
+
+
+
+
+            </script>
+
+        </div>
+    </body>
+    </html>

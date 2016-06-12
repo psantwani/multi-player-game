@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+    <title>POSTMAN</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+    <link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+    <style>
+    body{ 
+        padding-top:80px; 
+        word-wrap:break-word; 
+        font-family: 'Raleway'
+    }
+    #feedList{
+        margin-top: 20px;
+    }    
+    #feedList > li{
+        padding: 5px;
+    }
+    .myProfile{
+        margin-top : 0px !important;            
+    }
+    .feedText{
+        display: inline-block;
+    }
+    #newGame{
+        float: right;
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="page-header text-center myProfile">
+            <div class="well">
+                <h3><span class="fa fa-user"></span> Profile</h3>
+
+                <% if (user.local.email) { %>
+                <p>
+                    <strong>id</strong>: <%= user._id %><br>
+                    <strong>email</strong>: <%= user.local.email %><br>                        
+                </p>                    
+                
+                <% } else { %>
+                
+                <% } %>
+                <a href="/logout" class="btn btn-default btn-sm">Logout</a>
+            </div>        
+        </div>    
+        
+        <div>
+            <p class = "feedText">Start a new game or join an existing game.</p>
+            <button type="button" id="newGame" class="btn btn-primary feedText">New Game</button>
+        </div>
+
+        <div>
+            <ul class="list-group" id="feedList">  
+            </ul>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.6/socket.io.js"></script>
+        <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+
+        <script>
+        var user_id; 
+        var socket = io();
+        $( document ).ready(function() {
+            user_id = '<%= user._id %>';        
+            socket.emit("loggedIn", user_id)
+            getFeed();        
+        });  
+
+        socket.on("updateFeed", function(data){
+            data = JSON.parse(data);
+            var hrefDestination = "/game?game="+data.gameId+"&player="+user_id;
+            var msg = data.createdBy + " started a new game at " + new Date(parseInt(data.createdAt)) + ". ";
+            var joinAnchor = "<a id = '" + data.gameId + "' href='"+hrefDestination+"'' >JOIN</a>"      
+            $("#feedList").append($('<li>').html(msg + joinAnchor)); 
+        });
+
+        socket.on("removeFromFeed", function(data){        
+            removeFromFeed(data);
+        });
+
+        $("#newGame").on("click", function(){        
+            window.location.assign("/game?game="+user_id+"_"+Date.now().toString()+"&player="+user_id);        
+        });
+
+        function removeFromFeed(gameId){
+            $("#"+gameId).parent().remove();
+        }
+
+        function getFeed(){
+            $.ajax({
+                type: "GET",
+                dataType: "json",
+                url:'/getFeed',
+                success: function(data){                    
+                    loadFeed(data);
+                }
+            });  
+        }
+
+        function loadFeed(data){
+            for(var i = 0 ; i < data.length; i++){
+                var msg = data[i].createdBy + " started a new game at " + new Date(parseInt(data[i].createdAt)) + ". ";
+                var joinAnchor = "";
+                if(data[i].available){
+                    var hrefDestination = "/game?game="+data[i].gameId+"&player="+user_id;
+                    joinAnchor = "<a id = '" + data[i].gameId + "' href='"+hrefDestination+"'' >JOIN</a>";
+                }            
+                $("#feedList").append($('<li>').html(msg + joinAnchor)); 
+            }
+        }
+        </script>
+
+    </div>
+</body>
+</html>
