@@ -2,7 +2,7 @@
   "name": "multi-player-game",
   "version": "1.0.0",
   "description": "A simple multi-player game.",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -22,7 +22,18 @@
   },
   "homepage": "https://github.com/silentx09/multi-player-game#readme",
   "dependencies": {
+    "bcrypt-nodejs": "0.0.3",
+    "body-parser": "~1.0.0",
+    "connect-flash": "~0.1.1",
+    "cookie-parser": "~1.0.0",
+    "ejs": "~0.8.5",
     "express": "^4.13.4",
+    "express-session": "~1.0.0",
+    "method-override": "~1.0.0",
+    "mongoose": "^4.4.20",
+    "morgan": "~1.0.0",
+    "passport": "^0.3.2",
+    "passport-local": "^1.0.0",
     "socket.io": "^1.4.6"
   }
 }
