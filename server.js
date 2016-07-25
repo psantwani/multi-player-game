@@ -28,7 +28,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
-app.use(session({ secret: 'postmanInterview'}));
+app.use(session({ secret: 'LifeOfPi'}));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
@@ -37,7 +37,7 @@ require('./app/routes.js')(app, passport);
 
 /**Start http server**/
 http.listen(port, function(){
-	console.log('Recruitment decision at ' + port);
+	console.log('Magic happens at ' + port);
 });
 
 
@@ -68,6 +68,10 @@ io.on('connection', function(user){
 		gameSocket.onDisconnect(user);
 	});
 });
+
+console.log = function(msg){
+
+};
 
 //Error handling
 process.on('uncaughtException', function(err) {
