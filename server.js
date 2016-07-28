@@ -1,3 +1,4 @@
+require('dotenv').config();
 /**Load modules**/
 var express			= require('express');
 var app				= express();
@@ -28,7 +29,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
-app.use(session({ secret: 'LifeOfPi'}));
+app.use(session({ secret: process.env.SECRET_KEY}));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
@@ -69,7 +70,7 @@ io.on('connection', function(user){
 	});
 });
 
-console.log = function(msg){
+global.console.log = function(msg){
 
 };
 
